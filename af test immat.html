@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz Flotte & Immatriculations - Air France</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --af-navy: #002157;
+      --af-deep-navy: #001233;
+      --af-card-bg: #0a1e46;
+      --af-red: #ED0000;
+      --af-border: #1d366b;
+      --text-main: #FFFFFF;
+      --text-muted: #9BB0D3;
+      --success: #00a862;
+      --error: #ED0000;
+    }
+
+    * { box-sizing: border-box; font-family: "Helvetica Neue", Arial, sans-serif; }
+    
+    body {
+      background: radial-gradient(circle at 50% 20%, #0d285c 0%, var(--af-deep-navy) 100%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 16px;
+    }
+
+    .card {
+      background: var(--af-card-bg);
+      border-radius: 14px;
+      padding: 24px 28px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+      text-align: center;
+      border: 1px solid var(--af-border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Dérive tricolore Air France */
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #002157 0%, #002157 60%, #FFFFFF 60%, #FFFFFF 75%, var(--af-red) 75%, var(--af-red) 100%);
+    }
+
+    /* En-tête avec les 2 logos */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--af-border);
+    }
+
+    .main-logo {
+      height: 38px;
+      max-width: 65%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+
+    .historic-crevette {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      padding: 2px;
+      border: 2px solid var(--af-red);
+      object-fit: contain;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* Menus & Sélections */
+    .menu-group { margin: 18px 0; text-align: left; }
+    .section-label { font-size: 0.8rem; font-weight: bold; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; display: block; }
+    
+    .mode-select {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .mode-btn {
+      background: #102958;
+      border: 2px solid var(--af-border);
+      color: #fff;
+      padding: 12px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .mode-btn.active {
+      border-color: var(--af-red);
+      background: #183a7a;
+    }
+
+    .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+    .btn-grid button {
+      background: #122b5c;
+      border: 1px solid var(--af-border);
+      color: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-grid button:hover { background: #1b3d7d; }
+
+    .input-wrapper { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.9rem; color: var(--text-muted); }
+    input[type="number"] {
+      width: 70px;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid var(--af-border);
+      background: #001538;
+      color: #fff;
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: bold;
+    }
+
+    .start-btn {
+      width: 100%;
+      background: var(--af-red);
+      color: #ffffff;
+      font-weight: bold;
+      padding: 13px;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 14px rgba(237, 0, 0, 0.4);
+      transition: background 0.2s;
+    }
+    .start-btn:hover { background: #c70000; }
+
+    .memo-link-btn {
+      width: 100%;
+      background: transparent;
+      color: #79a6f6;
+      border: 1px dashed #345c9f;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .memo-link-btn:hover { background: rgba(255,255,255,0.05); }
+
+    /* Barre et Timer */
+    .progress-bar-container { background: #001538; border-radius: 4px; height: 6px; width: 100%; margin-bottom: 12px; overflow: hidden; }
+    .progress-bar { background: var(--af-red); height: 100%; width: 0%; transition: width 0.2s ease; }
+    
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .timer-badge {
+      display: none;
+      background: var(--af-red);
+      color: #fff;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+    }
+
+    /* Carte Immat */
+    .boarding-box {
+      background: #FFFFFF;
+      color: var(--af-navy);
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      text-align: left;
+      position: relative;
+      border-left: 5px solid var(--af-red);
+    }
+    .boarding-label { font-size: 0.68rem; font-weight: 800; color: #6b7280; letter-spacing: 1px; text-transform: uppercase; }
+    .immat-box {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: var(--af-navy);
+      margin: 2px 0 0 0;
+      font-family: "Courier New", Courier, monospace;
+    }
+    .watermark-crevette {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      opacity: 0.18;
+      pointer-events: none;
+      object-fit: contain;
+    }
+
+    /* Options & Boutons */
+    .options { display: flex; flex-direction: column; gap: 8px; }
+    .option-btn {
+      background: #102958;
+      border: 1px solid var(--af-border);
+      color: #fff;
+      padding: 12px;
+      font-size: 0.98rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: 0.15s;
+      text-align: center;
+    }
+    .option-btn:hover { background: #193d80; border-color: #3f68b3; }
+    .option-btn.correct { background: var(--success) !important; border-color: #027a48; color: #fff; }
+    .option-btn.wrong { background: var(--error) !important; border-color: #b30000; color: #fff; }
+
+    /* Zone Astuce / Feedback */
+    #feedback-container {
+      margin-top: 14px;
+      min-height: 24px;
+    }
+    #feedback-title { font-weight: bold; font-size: 1.05rem; margin-bottom: 4px; }
+    .anecdote-box {
+      background: #00173d;
+      border-left: 3px solid #79a6f6;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      color: #bed3f8;
+      text-align: left;
+      border-radius: 0 6px 6px 0;
+      margin-top: 6px;
+      display: none;
+    }
+
+    #next-btn { display: none; margin-top: 14px; width: 100%; background: #FFFFFF; color: var(--af-navy); font-weight: 800; border: none; padding: 12px; border-radius: 6px; cursor: pointer; text-transform: uppercase; }
+    #next-btn:hover { background: #E8EEF8; }
+
+    /* Écran Bilan */
+    .result-score { font-size: 2.8rem; font-weight: 900; color: #FFFFFF; margin: 12px 0; }
+
+    /* Écran Révision Mémo */
+    .memo-content {
+      max-height: 380px;
+      overflow-y: auto;
+      text-align: left;
+      padding: 4px 8px 4px 0;
+      margin-bottom: 14px;
+    }
+    .memo-group {
+      background: #00173d;
+      border: 1px solid var(--af-border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+    }
+    .memo-plane { font-weight: bold; color: #ffffff; font-size: 0.95rem; margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .memo-immat { color: #00d2ff; font-family: monospace; font-size: 0.9rem; }
+    .memo-tip { font-size: 0.82rem; color: #a2bcdb; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <!-- En-tête Logos -->
+  <div class="brand-header">
+    <img 
+      class="main-logo" 
+      src="https://img.static-af.com/transform/60f4abd3-edd4-4c95-8dee-51190ec2d479/?io=transform:fill,width:960,height:480&consumerid=bwp" 
+      alt="Air France Logo">
+    <img 
+      class="historic-crevette" 
+      src="https://storage.canalblog.com/08/87/1356614/104684699_o.png" 
+      alt="Hippocampe ailé Air France">
+  </div>
+
+  <!-- 1. Menu Principal -->
+  <div id="start-screen" class="screen active">
+    <h3 style="margin: 0 0 12px 0;">Formation Flotte AF</h3>
+    
+    <div class="menu-group">
+      <span class="section-label">1. Mode de session</span>
+      <div class="mode-select">
+        <button type="button" class="mode-btn active" id="btn-mode-train" onclick="selectMode('train')">Entraînement<br><small style="font-weight:normal;opacity:0.8;">Avec astuces mémos</small></button>
+        <button type="button" class="mode-btn" id="btn-mode-exam" onclick="selectMode('exam')">Examen Blanc<br><small style="font-weight:normal;opacity:0.8;">15s chrono / question</small></button>
+      </div>
+
+      <span class="section-label">2. Taille de la série</span>
+      <div class="btn-grid">
+        <button type="button" onclick="setCount(10)">10 q.</button>
+        <button type="button" onclick="setCount(20)">20 q.</button>
+        <button type="button" onclick="setCount(30)">30 q.</button>
+      </div>
+      <div class="input-wrapper">
+        <label for="custom-count">Ou sur mesure (10-30) :</label>
+        <input type="number" id="custom-count" min="10" max="30" value="20">
+      </div>
+    </div>
+    
+    <button class="start-btn" onclick="startQuiz()">Lancer la session</button>
+    <button class="memo-link-btn" onclick="switchScreen('memo-screen')">Consulter la fiche mémo de la flotte</button>
+  </div>
+
+  <!-- 2. Écran Quiz -->
+  <div id="quiz-screen" class="screen">
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="status-bar">
+      <span>QUESTION : <strong id="current-q">1</strong> / <strong id="total-q">20</strong></span>
+      <span class="timer-badge" id="timer-badge">15s</span>
+      <span>SCORE : <strong id="current-score">0</strong></span>
+    </div>
+    
+    <!-- Carte d'embarquement -->
+    <div class="boarding-box">
+      <div class="boarding-label">Immatriculation / Registration</div>
+      <div class="immat-box" id="immat-display">F-????</div>
+      <img class="watermark-crevette" src="https://storage.canalblog.com/08/87/1356614/104684699_o.png" alt="">
+    </div>
+    
+    <div class="options" id="options-container"></div>
+
+    <div id="feedback-container">
+      <div id="feedback-title"></div>
+      <div class="anecdote-box" id="anecdote-box"></div>
+    </div>
+
+    <button id="next-btn" onclick="handleNext()">Suivant</button>
+  </div>
+
+  <!-- 3. Écran Bilan -->
+  <div id="end-screen" class="screen">
+    <h2 style="margin-top: 0;">Session terminée !</h2>
+    <div class="result-score" id="final-score">0 / 0</div>
+    <p id="final-percentage" style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 25px;"></p>
+    <button class="start-btn" onclick="resetToMenu()">Retour au menu</button>
+  </div>
+
+  <!-- 4. Écran Fiche Mémo Flotte -->
+  <div id="memo-screen" class="screen">
+    <h3 style="margin-top:0;">Fiche Mémo Flotte AF</h3>
+    <div class="memo-content" id="memo-list"></div>
+    <button class="start-btn" onclick="resetToMenu()">Retour</button>
+  </div>
+</div>
+
+<script>
+const models = [
+  "777-200ER",
+  "777-Cargo",
+  "777-300ER",
+  "777-300COI",
+  "787-9",
+  "A220-300",
+  "A318-100",
+  "A319-100",
+  "A320-200",
+  "A321-200",
+  "A330-200",
+  "A350-900"
+];
+
+// Base d'anecdotes et mémos pour chaque appareil
+const fleetTips = {
+  "777-200ER": {
+    range: "F-GSPA à FGSPZ",
+    tip: "Mnémo : « P = Petit » (le 200 est plus court que le 300). Dans l'alphabet, P arrive avant Q."
+  },
+  "777-Cargo": {
+    range: "F-GUOB & F-GUOC",
+    tip: "Mnémo : « UO = Utile / Objet ». Seulement deux appareils cargo dédiés (B et C)."
+  },
+  "777-300ER": {
+    range: "F-GSQA-Z & F-GZNA-Z (hors COI)",
+    tip: "Mnémo : « Q vient après P » (version longue). Deuxième série « GZN = Zone Nouvelle »."
+  },
+  "777-300COI": {
+    range: "GSQ (N,O,P,R,S,T,X) & GZN (F,G,L,N,O)",
+    tip: "Mnémo Caraïbes/Océan Indien : GSQ = « N-O-P » et « R-S-T » + X. GZN = « FG » (Froid/Givre qu'on fuit) et « LNO » (Le Nouvel Océan)."
+  },
+  "787-9": {
+    range: "F-HRBA à F-HRBJ",
+    tip: "Mnémo Dreamliner : « HRB = Heure de Repos Bien méritée » (série courte A à J)."
+  },
+  "A220-300": {
+    range: "F-HOZA-H, F-HPNA-Z, F-HZUA-Z",
+    tip: "Mnémo relève : « O-P-Z » -> « On Passe de Zéro à l'A220 »."
+  },
+  "A318-100": {
+    range: "F-GUGM à F-GUGP",
+    tip: "Mnémo Babybus : « GUG = Guépard / Gamin ». Tranche courte de fin d'alphabet (M à P)."
+  },
+  "A319-100": {
+    range: "F-GRXF",
+    tip: "Mnémo avion unique : « RXF = Rescapé X-Fois »."
+  },
+  "A320-200": {
+    range: "F-GKXA-Z, F-HBNA-J, F-HEPA-K, F-HZFM",
+    tip: "Mnémo 4 séries : GKX (Kilo X), HBN (Hub National), HEP (Hep taxi !), et l'intrus ZFM."
+  },
+  "A321-200": {
+    range: "F-GTAA à F-GTAZ",
+    tip: "Mnémo : « GTA = Grand Transport Airbus » (le plus long de la famille A320)."
+  },
+  "A330-200": {
+    range: "F-GZCA à F-GZCO",
+    tip: "Mnémo : « GZC = Cabotage / Classique » long-courrier (tranche A à O)."
+  },
+  "A350-900": {
+    range: "F-HTYA-Z & F-HUV-A-Z",
+    tip: "Mnémo : « TY » et « UV » qui se suivent dans l'alphabet (« Tout Neuf / Ultra Violet »)."
+  }
+};
+
+function charRange(start, end) {
+  let list = [];
+  for (let i = start.charCodeAt(0); i <= end.charCodeAt(0); i++) {
+    list.push(String.fromCharCode(i));
+  }
+  return list;
+}
+
+const coiGsqLetters = ['N', 'O', 'P', 'R', 'S', 'T', 'X'];
+const coiGznLetters = ['F', 'G', 'L', 'N', 'O'];
+
+const generators = {
+  "777-200ER": () => "F-GSP" + pick(charRange('A', 'Z')),
+  "777-Cargo": () => "F-GUO" + pick(['B', 'C']),
+  "777-300ER": () => {
+    if (Math.random() < 0.5) {
+      let l = pick(charRange('A', 'Z').filter(c => !coiGsqLetters.includes(c)));
+      return "F-GSQ" + l;
+    } else {
+      let l = pick(charRange('A', 'Z').filter(c => !coiGznLetters.includes(c)));
+      return "F-GZN" + l;
+    }
+  },
+  "777-300COI": () => {
+    return Math.random() < 0.6 
+      ? "F-GSQ" + pick(coiGsqLetters) 
+      : "F-GZN" + pick(coiGznLetters);
+  },
+  "787-9": () => "F-HRB" + pick(charRange('A', 'J')),
+  "A220-300": () => {
+    let r = Math.random();
+    if (r < 0.33) return "F-HOZ" + pick(charRange('A', 'H'));
+    if (r < 0.66) return "F-HPN" + pick(charRange('A', 'Z'));
+    return "F-HZU" + pick(charRange('A', 'Z'));
+  },
+  "A318-100": () => "F-GUG" + pick(['M', 'N', 'O', 'P']),
+  "A319-100": () => "F-GRXF",
+  "A320-200": () => {
+    let r = Math.random();
+    if (r < 0.4) return "F-GKX" + pick(charRange('A', 'Z'));
+    if (r < 0.7) return "F-HBN" + pick(charRange('A', 'J'));
+    if (r < 0.95) return "F-HEP" + pick(charRange('A', 'K'));
+    return "F-HZFM";
+  },
+  "A321-200": () => "F-GTA" + pick(charRange('A', 'Z')),
+  "A330-200": () => "F-GZC" + pick(charRange('A', 'O')),
+  "A350-900": () => (Math.random() < 0.5 ? "F-HTY" : "F-HUV") + pick(charRange('A', 'Z'))
+};
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
+
+let sessionMode = 'train'; // 'train' ou 'exam'
+let totalQuestions = 20;
+let currentQuestionIndex = 0;
+let score = 0;
+let currentCorrectAnswer = "";
+let timer = null;
+let timeLeft = 15;
+
+function selectMode(mode) {
+  sessionMode = mode;
+  document.getElementById('btn-mode-train').classList.toggle('active', mode === 'train');
+  document.getElementById('btn-mode-exam').classList.toggle('active', mode === 'exam');
+}
+
+function switchScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+}
+
+function setCount(val) {
+  document.getElementById('custom-count').value = val;
+}
+
+function startQuiz() {
+  let val = parseInt(document.getElementById('custom-count').value, 10);
+  if (isNaN(val) || val < 10) val = 10;
+  if (val > 30) val = 30;
+  
+  totalQuestions = val;
+  currentQuestionIndex = 0;
+  score = 0;
+
+  document.getElementById('total-q').innerText = totalQuestions;
+  document.getElementById('timer-badge').style.display = sessionMode === 'exam' ? 'inline-block' : 'none';
+  
+  switchScreen('quiz-screen');
+  loadQuestion();
+}
+
+function loadQuestion() {
+  clearInterval(timer);
+  currentQuestionIndex++;
+  document.getElementById('current-q').innerText = currentQuestionIndex;
+  document.getElementById('current-score').innerText = score;
+  document.getElementById('progress-bar').style.width = `${((currentQuestionIndex - 1) / totalQuestions) * 100}%`;
+  
+  document.getElementById("feedback-title").innerText = "";
+  const anecdoteBox = document.getElementById("anecdote-box");
+  anecdoteBox.style.display = "none";
+  anecdoteBox.innerText = "";
+  document.getElementById("next-btn").style.display = "none";
+
+  currentCorrectAnswer = pick(models);
+  const immat = generators[currentCorrectAnswer]();
+  document.getElementById("immat-display").innerText = immat;
+
+  let distractors = models.filter(m => m !== currentCorrectAnswer);
+  if (currentCorrectAnswer === "777-300ER" && !distractors.includes("777-300COI")) distractors.push("777-300COI");
+  if (currentCorrectAnswer === "777-300COI" && !distractors.includes("777-300ER")) distractors.push("777-300ER");
+
+  let choices = shuffle(distractors).slice(0, 3);
+  choices.push(currentCorrectAnswer);
+  choices = shuffle(choices);
+
+  const container = document.getElementById("options-container");
+  container.innerHTML = "";
+
+  choices.forEach(choice => {
+    const btn = document.createElement("button");
+    btn.className = "option-btn";
+    btn.innerText = choice;
+    btn.onclick = () => checkAnswer(btn, choice);
+    container.appendChild(btn);
+  });
+
+  // Déclenchement du compte à rebours de 15s si examen
+  if (sessionMode === 'exam') {
+    timeLeft = 15;
+    const badge = document.getElementById('timer-badge');
+    badge.innerText = `${timeLeft}s`;
+    timer = setInterval(() => {
+      timeLeft--;
+      badge.innerText = `${timeLeft}s`;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        timeOutExpired();
+      }
+    }, 1000);
+  }
+}
+
+function timeOutExpired() {
+  const buttons = document.querySelectorAll("#options-container button");
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    if (btn.innerText === currentCorrectAnswer) btn.classList.add("correct");
+  });
+
+  const fbTitle = document.getElementById("feedback-title");
+  fbTitle.innerText = `Temps écoulé ! C'était ${currentCorrectAnswer}`;
+  fbTitle.style.color = "var(--af-red)";
+
+  showNextButton();
+}
+
+function checkAnswer(selectedBtn, choice) {
+  clearInterval(timer);
+  const buttons = document.querySelectorAll("#options-container button");
+  buttons.forEach(btn => btn.disabled = true);
+
+  const fbTitle = document.getElementById("feedback-title");
+  const anecdoteBox = document.getElementById("anecdote-box");
+
+  if (choice === currentCorrectAnswer) {
+    score++;
+    selectedBtn.classList.add("correct");
+    fbTitle.innerText = "Exact !";
+    fbTitle.style.color = "#00d26a";
+  } else {
+    selectedBtn.classList.add("wrong");
+    buttons.forEach(btn => {
+      if (btn.innerText === currentCorrectAnswer) btn.classList.add("correct");
+    });
+    fbTitle.innerText = `Erreur : c'était ${currentCorrectAnswer}`;
+    fbTitle.style.color = "var(--af-red)";
+  }
+
+  // Affichage de l'astuce mémo en mode entraînement (ou pour aider à fixer en examen)
+  if (fleetTips[currentCorrectAnswer]) {
+    anecdoteBox.innerText = `💡 ${fleetTips[currentCorrectAnswer].tip}`;
+    anecdoteBox.style.display = "block";
+  }
+
+  document.getElementById("current-score").innerText = score;
+  showNextButton();
+}
+
+function showNextButton() {
+  const nextBtn = document.getElementById("next-btn");
+  nextBtn.innerText = currentQuestionIndex >= totalQuestions ? "Voir le bilan" : "Question suivante";
+  nextBtn.style.display = "block";
+}
+
+function handleNext() {
+  if (currentQuestionIndex >= totalQuestions) {
+    showResults();
+  } else {
+    loadQuestion();
+  }
+}
+
+function showResults() {
+  clearInterval(timer);
+  switchScreen('end-screen');
+  document.getElementById('final-score').innerText = `${score} / ${totalQuestions}`;
+  const pct = Math.round((score / totalQuestions) * 100);
+  const label = sessionMode === 'exam' ? 'Résultat Examen (15s/q)' : 'Résultat Entraînement';
+  document.getElementById('final-percentage').innerText = `${label} : ${pct}% de réussite`;
+}
+
+function resetToMenu() {
+  clearInterval(timer);
+  switchScreen('start-screen');
+}
+
+// Initialisation de la fiche mémo
+function renderMemo() {
+  const memoList = document.getElementById('memo-list');
+  memoList.innerHTML = "";
+  for (const [model, info] of Object.entries(fleetTips)) {
+    const group = document.createElement('div');
+    group.className = 'memo-group';
+    group.innerHTML = `
+      <div class="memo-plane">
+        <span>${model}</span>
+        <span class="memo-immat">${info.range}</span>
+      </div>
+      <div class="memo-tip">${info.tip}</div>
+    `;
+    memoList.appendChild(group);
+  }
+}
+
+renderMemo();
+</script>
+
+</body>
+</html>
